@@ -1,0 +1,66 @@
+version: "3"
+
+services:
+  postgres:
+    image: postgres:16
+    restart: always
+    ports:
+      - ${DATABASE_PORT}:5432
+    volumes:
+      - ./postgres/.data/db:/var/lib/postgresql/data
+      - ./postgres/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    environment:
+      POSTGRES_USER: ${DATABASE_USERNAME}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME}
+
+  # nginx:
+  #   image: nginx:latest
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx/conf.d/ddns.conf:/etc/nginx/conf.d/ddns.conf
+  #     - ./nginx/ssl:/var/www/html/ssl
+  #     - ./nginx/.well-known/pki-validation:/var/www/html/.well-known/pki-validation
+  #   depends_on:
+  #     - n8n
+
+  n8n:
+    build:
+      context: ./n8n
+      dockerfile: Dockerfile
+    image: jui/n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    # ### 新增這段：強制使用穩定 DNS ###
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    # ############################
+    environment:
+      - N8N_SECURE_COOKIE=false
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=${DATABASE_PORT}
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=${DATABASE_USERNAME}
+      - DB_POSTGRESDB_PASSWORD=${DATABASE_PASSWORD}
+      - N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE=true
+      - NODE_FUNCTION_ALLOW_EXTERNAL=*
+      # --- 時區設定 ---
+      - GENERIC_TIMEZONE=Asia/Taipei  # ### 新增: 設定 n8n 預設時區
+      - TZ=Asia/Taipei                # ### 新增: 設定系統層級時區
+      # ----------------
+
+    # 添加必要的權限給 Chrome/Puppeteer
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - seccomp:unconfined
+    links:
+      - postgres
+    volumes:
+      - ./n8n/data:/home/node/.n8n
+
