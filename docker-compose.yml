@@ -81,13 +81,14 @@ services:
     container_name: pgbouncer-app
     restart: always
     ports:
-      - "${PGBOUNCER_APP_PORT}:6432"
+      - "${PGBOUNCER_APP_PORT}:5432"
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: ${APP_WRITE_DB_USER}
       DB_PASSWORD: ${APP_WRITE_DB_PASSWORD}
       DB_NAME: ${APP_WRITE_DB_NAME}
+      AUTH_TYPE: scram-sha-256
 
       POOL_MODE: transaction
       MAX_CLIENT_CONN: 500
