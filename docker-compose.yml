@@ -1,36 +1,111 @@
 version: "3"
 
 services:
+  # ===============================
+  # PostgreSQL Primary
+  # ===============================
   postgres:
     image: postgres:16
+    container_name: postgres
     restart: always
     ports:
-      - ${DATABASE_PORT}:5432
+      - "${DATABASE_PORT}:5432"
     volumes:
       - ./postgres/.data/db:/var/lib/postgresql/data
-      - ./postgres/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - ./pg_hba.conf:/var/lib/postgresql/data/pg_hba.conf
     environment:
       POSTGRES_USER: ${DATABASE_USERNAME}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
       POSTGRES_DB: ${DATABASE_NAME}
+    command: >
+      postgres
+      -c wal_level=replica
+      -c max_wal_senders=10
+      -c max_replication_slots=10
+      -c hot_standby=on
 
-  # nginx:
-  #   image: nginx:latest
-  #   ports:
-  #     - "80:80"
-  #     - "443:443"
-  #   volumes:
-  #     - ./nginx/conf.d/ddns.conf:/etc/nginx/conf.d/ddns.conf
-  #     - ./nginx/ssl:/var/www/html/ssl
-  #     - ./nginx/.well-known/pki-validation:/var/www/html/.well-known/pki-validation
-  #   depends_on:
-  #     - n8n
+# ===============================
+  # PostgreSQL Replica (大幅修正)
+  # ===============================
+  postgres-replica:
+    image: postgres:16
+    container_name: postgres-replica
+    restart: always
+    user: postgres
+    ports:
+      - "5433:5432"
+    depends_on:
+      - postgres
+    environment:
+      # 這裡不需要設定 POSTGRES_USER/PASSWORD，因為資料是直接從 Primary 複製過來的
+      # 它會連同 Primary 的帳號密碼一起複製過來
+      PGDATA: /var/lib/postgresql/data
+    volumes:
+      # 資料掛載
+      - ./postgres-replica/.data:/var/lib/postgresql/data
+      # 掛載我們寫的初始化腳本
+      - ./init-replica.sh:/init-replica.sh
+    # 覆蓋 Entrypoint，改用我們的腳本
+    entrypoint: ["/bin/bash", "/init-replica.sh"]
 
+  # ===============================
+  # PgBouncer for n8n（session）
+  # ===============================
+  pgbouncer-n8n:
+    image: edoburu/pgbouncer
+    container_name: pgbouncer-n8n
+    restart: always
+    ports:
+      - "${PGBOUNCER_N8N_PORT}:5432"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${N8N_DB_USER}
+      DB_PASSWORD: ${N8N_DB_PASSWORD}
+      DB_NAME: ${N8N_DB_NAME}
+      AUTH_TYPE: scram-sha-256
+
+      POOL_MODE: session
+      MAX_CLIENT_CONN: 20
+      DEFAULT_POOL_SIZE: 5
+      SERVER_RESET_QUERY: DISCARD ALL
+    depends_on:
+      - postgres
+
+  # ===============================
+  # PgBouncer for App（寫入）
+  # ===============================
+  pgbouncer-app:
+    image: edoburu/pgbouncer
+    container_name: pgbouncer-app
+    restart: always
+    ports:
+      - "${PGBOUNCER_APP_PORT}:6432"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${APP_WRITE_DB_USER}
+      DB_PASSWORD: ${APP_WRITE_DB_PASSWORD}
+      DB_NAME: ${APP_WRITE_DB_NAME}
+
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 500
+      DEFAULT_POOL_SIZE: 40
+      RESERVE_POOL_SIZE: 10
+      SERVER_RESET_QUERY: DISCARD ALL
+    depends_on:
+      - postgres
+
+  # ===============================
+  # n8n
+  # ===============================
   n8n:
-    build:
-      context: ./n8n
-      dockerfile: Dockerfile
     image: jui/n8n
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: n8n
     restart: always
     ports:
       - "5678:5678"
@@ -42,17 +117,15 @@ services:
     environment:
       - N8N_SECURE_COOKIE=false
       - DB_TYPE=postgresdb
-      - DB_POSTGRESDB_HOST=postgres
-      - DB_POSTGRESDB_PORT=${DATABASE_PORT}
+      - DB_POSTGRESDB_HOST=pgbouncer-n8n
+      - DB_POSTGRESDB_PORT=5432
       - DB_POSTGRESDB_DATABASE=n8n
-      - DB_POSTGRESDB_USER=${DATABASE_USERNAME}
-      - DB_POSTGRESDB_PASSWORD=${DATABASE_PASSWORD}
+      - DB_POSTGRESDB_USER=${N8N_DB_USER}
+      - DB_POSTGRESDB_PASSWORD=${N8N_DB_PASSWORD}
       - N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE=true
       - NODE_FUNCTION_ALLOW_EXTERNAL=*
-      # --- 時區設定 ---
-      - GENERIC_TIMEZONE=Asia/Taipei  # ### 新增: 設定 n8n 預設時區
-      - TZ=Asia/Taipei                # ### 新增: 設定系統層級時區
-      # ----------------
+      - GENERIC_TIMEZONE=Asia/Taipei  
+      - TZ=Asia/Taipei
 
     # 添加必要的權限給 Chrome/Puppeteer
     cap_add:
@@ -63,4 +136,5 @@ services:
       - postgres
     volumes:
       - ./n8n/data:/home/node/.n8n
-
+    depends_on:
+      - pgbouncer-n8n
