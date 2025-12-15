@@ -5,7 +5,7 @@ set -e
 if [ ! -f "$PGDATA/PG_VERSION" ] || [ -z "$(ls -A $PGDATA)" ]; then
     echo "Initializing replica..."
     export PGPASSWORD=replicator_pass
-    pg_basebackup -h postgres -D "$PGDATA" -U replicator -v -P --wal-method=stream
+    pg_basebackup -h postgres -D "$PGDATA" -U replicator -v -P -R --wal-method=stream
 else
     echo "Replica data directory not empty, skipping basebackup"
 fi
