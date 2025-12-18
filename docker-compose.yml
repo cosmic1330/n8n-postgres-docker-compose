@@ -98,6 +98,22 @@ services:
     depends_on:
       - postgres
 
+
+  # ===============================
+  # nginx
+  # ===============================
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d/ddns.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/var/www/html/ssl
+      - ./nginx/.well-known/pki-validation:/var/www/html/.well-known/pki-validation
+    depends_on:
+      - n8n
+
   # ===============================
   # n8n
   # ===============================
@@ -127,6 +143,10 @@ services:
       - NODE_FUNCTION_ALLOW_EXTERNAL=*
       - GENERIC_TIMEZONE=Asia/Taipei  
       - TZ=Asia/Taipei
+      - N8N_HOST=yangjuiyu.tplinkdns.com
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - WEBHOOK_URL=https://yangjuiyu.tplinkdns.com/
 
     # 添加必要的權限給 Chrome/Puppeteer
     cap_add:

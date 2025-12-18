@@ -3,7 +3,7 @@ USER root
 # 安裝擴充套件
 RUN npm install -g \ 
     cheerio \
-    @ch20026103/anysis@0.0.19-alpha1
+    @ch20026103/anysis@0.0.19
 # Install Chrome dependencies and Chrome
 RUN apk add --no-cache \
     chromium \
