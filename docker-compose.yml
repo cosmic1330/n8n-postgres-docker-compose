@@ -1,5 +1,12 @@
 version: "3"
 
+networks:
+  db_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+
 services:
   # ===============================
   # PostgreSQL Primary
@@ -8,6 +15,9 @@ services:
     image: postgres:16
     container_name: postgres
     restart: always
+    networks:
+      db_net:
+        ipv4_address: 172.25.0.5
     ports:
       - "${DATABASE_PORT}:5432"
     volumes:
@@ -33,6 +43,8 @@ services:
     container_name: postgres-replica
     restart: always
     user: postgres
+    networks:
+      - db_net
     ports:
       - "5433:5432"
     depends_on:
@@ -56,10 +68,12 @@ services:
     image: edoburu/pgbouncer
     container_name: pgbouncer-n8n
     restart: always
+    networks:
+      - db_net
     ports:
       - "${PGBOUNCER_N8N_PORT}:5432"
     environment:
-      DB_HOST: postgres
+      DB_HOST: 172.25.0.5
       DB_PORT: 5432
       DB_USER: ${N8N_DB_USER}
       DB_PASSWORD: ${N8N_DB_PASSWORD}
@@ -80,10 +94,12 @@ services:
     image: edoburu/pgbouncer
     container_name: pgbouncer-app
     restart: always
+    networks:
+      - db_net
     ports:
       - "${PGBOUNCER_APP_PORT}:5432"
     environment:
-      DB_HOST: postgres
+      DB_HOST: 172.25.0.5
       DB_PORT: 5432
       DB_USER: ${APP_WRITE_DB_USER}
       DB_PASSWORD: ${APP_WRITE_DB_PASSWORD}
@@ -104,6 +120,8 @@ services:
   # ===============================
   nginx:
     image: nginx:latest
+    networks:
+      - db_net
     ports:
       - "80:80"
       - "443:443"
@@ -124,6 +142,8 @@ services:
       dockerfile: Dockerfile
     container_name: n8n
     restart: always
+    networks:
+      - db_net
     ports:
       - "5678:5678"
     # ### 新增這段：強制使用穩定 DNS ###
