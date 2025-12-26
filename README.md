@@ -45,7 +45,24 @@ cp .env.example .env
 nano .env
 ```
 
-### 2. 生成資料庫 SSL 憑證
+### 2. 設定資料夾權限 (重要)
+
+由於 Linux 系統對檔案權限控管嚴格，請務必先設定正確的資料夾權限，否則資料庫與 n8n 可能無法寫入資料。
+
+```bash
+# 設定 PostgreSQL 資料夾權限 (UID 999)
+sudo chown -R 999:999 ./postgres/.data
+sudo chmod -R 700 ./postgres/.data
+sudo chown -R 999:999 ./postgres-replica/.data
+sudo chmod -R 700 ./postgres-replica/.data
+sudo chown -R 999:999 ./postgres-replica/ssl
+sudo chmod -R 600 ./postgres-replica/ssl/server.key
+
+# 設定 n8n 資料夾權限 (UID 1000)
+sudo chown -R 1000:1000 n8n
+```
+
+### 3. 生成資料庫 SSL 憑證
 
 為了確保資料庫同步的安全，請執行腳本生成自簽憑證：
 
