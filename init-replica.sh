@@ -13,6 +13,13 @@ done
 if [ ! -f "$PGDATA/PG_VERSION" ]; then
     echo "Initializing replica..."
     export PGPASSWORD="${REPLICA_DB_PASSWORD}"
+    
+    echo "Dropping existing replication slot 'replica_slot_1' if it exists..."
+    # 使用 replication protocol 連線並刪除 slot (如果存在)
+    # 忽略錯誤 (|| true)，因為如果 slot 不存在會報錯，但我們不希望因此中斷
+    psql -d "host=$PRIMARY_IP port=5432 user=${REPLICA_DB_USER} sslmode=require replication=true" \
+         -c "DROP_REPLICATION_SLOT replica_slot_1" || true
+
     pg_basebackup \
       -d "host=$PRIMARY_IP port=5432 user=${REPLICA_DB_USER} sslmode=require" \
       -D "$PGDATA" \

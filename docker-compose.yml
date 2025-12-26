@@ -25,18 +25,19 @@ services:
           cpus: "0.50"
           memory: 1G
     volumes:
-      - ./postgres/.data/db:/var/lib/postgresql/data
+      - ./postgres/.data/db:/var/lib/postgresql/18.1/data
       - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
-      - ./pg_hba.conf:/var/lib/postgresql/data/pg_hba.conf
-      - ./postgres/ssl/server.crt:/var/lib/postgresql/server.crt:ro
-      - ./postgres/ssl/server.key:/var/lib/postgresql/server.key:ro
-      - ./postgres/ssl/root.crt:/var/lib/postgresql/root.crt:ro
+      - ./pg_hba.conf:/var/lib/postgresql/18.1/data/pg_hba.conf
+      - ./postgres/ssl/server.crt:/var/lib/postgresql/18.1/docker/server.crt:ro
+      - ./postgres/ssl/server.key:/var/lib/postgresql/18.1/docker/server.key:ro
+      - ./postgres/ssl/root.crt:/var/lib/postgresql/18.1/docker/root.crt:ro
     env_file:
       - .env
     environment:
       POSTGRES_USER: ${DATABASE_USERNAME}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
       POSTGRES_DB: ${DATABASE_NAME}
+      PGDATA: /var/lib/postgresql/18.1/data
     command: >
       postgres
       -c wal_level=replica
@@ -44,9 +45,9 @@ services:
       -c max_replication_slots=10
       -c hot_standby=on
       -c ssl=on
-      -c ssl_cert_file=/var/lib/postgresql/server.crt
-      -c ssl_key_file=/var/lib/postgresql/server.key
-      -c ssl_ca_file=/var/lib/postgresql/root.crt
+      -c ssl_cert_file=/var/lib/postgresql/18.1/docker/server.crt
+      -c ssl_key_file=/var/lib/postgresql/18.1/docker/server.key
+      -c ssl_ca_file=/var/lib/postgresql/18.1/docker/root.crt
 
   # ===============================
   # PostgreSQL Replica (大幅修正)
@@ -72,16 +73,14 @@ services:
     environment:
       # 這裡不需要設定 POSTGRES_USER/PASSWORD，因為資料是直接從 Primary 複製過來的
       # 它會連同 Primary 的帳號密碼一起複製過來
-      PGDATA: /var/lib/postgresql/data
+      PGDATA: /var/lib/postgresql/18.1/data
     volumes:
       # 資料掛載
-      - ./postgres-replica/.data:/var/lib/postgresql/data
-      # 掛載 Replica 專用的訪問控制檔 (覆蓋 basebackup 產生的檔案)
-      - ./pg_hba_replica.conf:/var/lib/postgresql/data/pg_hba.conf
+      - ./postgres-replica/.data/db:/var/lib/postgresql/18.1/data
       # 掛載 SSL 憑證
-      - ./postgres/ssl/server.crt:/var/lib/postgresql/server.crt:ro
-      - ./postgres/ssl/server.key:/var/lib/postgresql/server.key:ro
-      - ./postgres/ssl/root.crt:/var/lib/postgresql/root.crt:ro
+      - ./postgres/ssl/server.crt:/var/lib/postgresql/18.1/docker/server.crt:ro
+      - ./postgres/ssl/server.key:/var/lib/postgresql/18.1/docker/server.key:ro
+      - ./postgres/ssl/root.crt:/var/lib/postgresql/18.1/docker/root.crt:ro
       # 掛載我們寫的初始化腳本
       - ./init-replica.sh:/init-replica.sh
     # 覆蓋 Entrypoint，改用我們的腳本
