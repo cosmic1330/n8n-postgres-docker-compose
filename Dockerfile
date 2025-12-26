@@ -5,9 +5,7 @@ RUN npm install -g \
     cheerio \
     @ch20026103/anysis@0.0.19
 # Install Chrome dependencies and Chrome
-USER root
-
-RUN apt-get update && apt-get install -y \
+RUN apk add --no-cache \
     chromium \
     nss \
     glib \
@@ -18,8 +16,7 @@ RUN apt-get update && apt-get install -y \
     ttf-freefont \
     udev \
     ttf-liberation \
-    fonts-noto-color-emoji \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    font-noto-emoji
 
 
 # Tell Puppeteer to use installed Chrome instead of downloading it
