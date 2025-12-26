@@ -6,7 +6,7 @@
 - 產品定位（Internal tool / SaaS / MVP / Prototype）： Internal tool
 
 ## 2. Problem Statement
-- 為postgres建立ssl 只允許外部使用ssl連線postgres replication
+- 為postgre replication 需要對外但必須提高安全性
 
 ## 3. Target Users
 - 主要使用者： IT部門

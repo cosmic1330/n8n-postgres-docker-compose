@@ -52,3 +52,26 @@
   - `sudo ufw default deny incoming`
 - **入侵預防 (Fail2Ban)**:
   - 安裝並啟用 `fail2ban` 來自動封鎖多次登入失敗的 IP。
+
+## 資安維護流程 (Security Maintenance Process)
+
+為了維持系統的長期安全性，必須遵循以下流程：
+
+### 1. 憑證管理與輪替
+
+- **SSL 憑證**: 每年至少更換一次資料庫內部使用的自簽名憑證或公認憑證。
+- **密鑰保護**: 嚴禁將 `.env` 文件上傳至版本控制系統。
+
+### 2. 存取審計 (Auditing)
+
+- **定期檢查日誌**: 每週審核 `/postgres/.data/db/log` 下的 Postgres 日誌，尋找異常的登入失敗記錄。
+- **最小權限原則**: 定期檢查 `pg_hba.conf` 與 `pg_hba_replica.conf`，確保沒有不必要的開放規則。
+
+### 3. 對外埠口監修
+
+- **Replica 埠口**: 僅在必要時保持 `REPLICA_DATABASE_PORT` 開啟。若不需要遠端存取，應立即關閉該埠口映射。
+- **SSL 強制**: 任何對外公開的資料庫連線必須在 `pg_hba.conf` 中使用 `hostssl` 關鍵字。
+
+### 4. 系統更新
+
+- **容器映像檔**: 每月執行一次 `docker-compose pull` 以獲取最新的資安補丁，並重啟服務。

@@ -60,9 +60,8 @@ services:
     user: postgres
     networks:
       - db_net
-    # 移除直接對外埠口映射
-    # ports:
-    #   - "5433:5432"
+    ports:
+      - "${REPLICA_DATABASE_PORT}:5432"
     deploy:
       resources:
         limits:

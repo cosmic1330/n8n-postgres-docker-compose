@@ -18,6 +18,8 @@ graph TD
 
         DB_Primary -- WAL Streaming (Enforced SSL) --> DB_Replica
     end
+
+    User -- "SSL/5433 (Replica)" --> DB_Replica
 ```
 
 ## 組件說明 (Component Details)
