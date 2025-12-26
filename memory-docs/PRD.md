@@ -6,7 +6,7 @@
 - 產品定位（Internal tool / SaaS / MVP / Prototype）： Internal tool
 
 ## 2. Problem Statement
-- 目前遇到的問題是遇到的 rediserver 木馬攻擊，導致cpU使用率飆升。
+- 為postgres建立ssl 只允許外部使用ssl連線postgres replication
 
 ## 3. Target Users
 - 主要使用者： IT部門

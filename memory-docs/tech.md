@@ -13,10 +13,11 @@
   - `wal_level`: replica
   - `max_wal_senders`: 10
   - `max_replication_slots`: 10
+  - `ssl`: on (Enabled with self-signed certificates)
 - **複製品資料庫 (Replica)**: PostgreSQL 18 (Hot Standby)
 - **連線池管理 (PgBouncer)**:
-  - `pgbouncer-n8n`: 提供給 n8n 使用，模式為 `session`
-  - `pgbouncer-app`: 提供給一般應用程式使用，模式為 `transaction` (支援大量連線)
+  - `pgbouncer-n8n`: 提供給 n8n 使用，模式為 `session` (Backend SSL: require)
+  - `pgbouncer-app`: 提供給一般應用程式使用，模式為 `transaction` (Backend SSL: require)
 
 ## 應用程式層 (Application Layer)
 

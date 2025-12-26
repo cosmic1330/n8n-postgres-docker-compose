@@ -16,7 +16,7 @@ graph TD
         n8n --> pgb_n8n[PgBouncer n8n]
         pgb_n8n --> DB_Primary[(Postgres Primary)]
 
-        DB_Primary -- WAL Streaming --> DB_Replica
+        DB_Primary -- WAL Streaming (Enforced SSL) --> DB_Replica
     end
 ```
 

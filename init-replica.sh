@@ -14,9 +14,8 @@ if [ ! -f "$PGDATA/PG_VERSION" ]; then
     echo "Initializing replica..."
     export PGPASSWORD="${REPLICA_DB_PASSWORD}"
     pg_basebackup \
-      -h "$PRIMARY_IP" \
+      -d "host=$PRIMARY_IP port=5432 user=${REPLICA_DB_USER} sslmode=require" \
       -D "$PGDATA" \
-      -U "${REPLICA_DB_USER}" \
       -v -P -R \
       -C -S replica_slot_1 \
       --wal-method=stream

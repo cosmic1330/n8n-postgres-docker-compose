@@ -8,16 +8,9 @@
 
 - 為專案建構資安流程
 
-### 1. 建立資安流程
-- 檢查docker-compose.yml潛在威脅
-- 提供DDNS建議與port redirect建議
-
-### 2. 提供外部對內窗口
-- 我有提供給外部Client 使用的Desktop App需要取得postgres-replica資料庫的資料
-- 透過 Node.js 建立一個 API 橋樑，可以讓你的 PostgreSQL 隱藏在 Docker 內部網路（db_net）中，完全不需要對外開放 5432 埠口。
-
-
-
+### 1. 是否需要使用ssl
+- 不需要請給我原因
+- 需要請幫我調整配置
 
 ## Non-Goals（明確不做，避免 AI 發散）
 
