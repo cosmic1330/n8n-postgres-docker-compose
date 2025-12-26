@@ -81,8 +81,15 @@ ON TABLES TO app_reader;
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;
 
 -- =====================================================
--- 5️⃣ postgres DB（只留給管理者）
+-- 5️⃣ 安全性強化
 -- =====================================================
+
+-- 撤銷 PUBLIC 角色在所有資料庫上的預設連線權限
+-- 確保只有透過 GRANT 指定的角色才能連線
+REVOKE CONNECT ON DATABASE n8n FROM PUBLIC;
+REVOKE CONNECT ON DATABASE app FROM PUBLIC;
+REVOKE CONNECT ON DATABASE postgres FROM PUBLIC;
 
 \connect postgres;
 -- 不特別給 app / n8n 權限，root 管理即可
+-- root 權限已在 pg_hba.conf 限制為本地存取

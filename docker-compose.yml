@@ -12,14 +12,20 @@ services:
   # PostgreSQL Primary
   # ===============================
   postgres:
-    image: postgres:16
+    image: postgres:18
     container_name: postgres
     restart: always
     networks:
       db_net:
         ipv4_address: 172.25.0.5
-    ports:
-      - "${DATABASE_PORT}:5432"
+    # 移除直接對外埠口映射以增強資安
+    # ports:
+    #   - "${DATABASE_PORT}:5432"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 1G
     volumes:
       - ./postgres/.data/db:/var/lib/postgresql/data
       - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
@@ -35,18 +41,24 @@ services:
       -c max_replication_slots=10
       -c hot_standby=on
 
-# ===============================
+  # ===============================
   # PostgreSQL Replica (大幅修正)
   # ===============================
   postgres-replica:
-    image: postgres:16
+    image: postgres:18
     container_name: postgres-replica
     restart: always
     user: postgres
     networks:
       - db_net
-    ports:
-      - "5433:5432"
+    # 移除直接對外埠口映射
+    # ports:
+    #   - "5433:5432"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 1G
     depends_on:
       - postgres
     environment:
@@ -56,6 +68,8 @@ services:
     volumes:
       # 資料掛載
       - ./postgres-replica/.data:/var/lib/postgresql/data
+      # 掛載 Replica 專用的訪問控制檔 (覆蓋 basebackup 產生的檔案)
+      - ./pg_hba_replica.conf:/var/lib/postgresql/data/pg_hba.conf
       # 掛載我們寫的初始化腳本
       - ./init-replica.sh:/init-replica.sh
     # 覆蓋 Entrypoint，改用我們的腳本
@@ -70,8 +84,6 @@ services:
     restart: always
     networks:
       - db_net
-    ports:
-      - "${PGBOUNCER_N8N_PORT}:5432"
     environment:
       DB_HOST: 172.25.0.5
       DB_PORT: 5432
@@ -96,8 +108,6 @@ services:
     restart: always
     networks:
       - db_net
-    ports:
-      - "${PGBOUNCER_APP_PORT}:5432"
     environment:
       DB_HOST: 172.25.0.5
       DB_PORT: 5432
@@ -114,7 +124,6 @@ services:
     depends_on:
       - postgres
 
-
   # ===============================
   # nginx
   # ===============================
@@ -123,12 +132,13 @@ services:
     networks:
       - db_net
     ports:
-      - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/conf.d/ddns.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/templates:/etc/nginx/templates:ro
       - ./nginx/ssl:/var/www/html/ssl
       - ./nginx/.well-known/pki-validation:/var/www/html/.well-known/pki-validation
+    environment:
+      - DOMAIN_NAME=${DOMAIN_NAME}
     depends_on:
       - n8n
 
@@ -144,8 +154,14 @@ services:
     restart: always
     networks:
       - db_net
-    ports:
-      - "5678:5678"
+    # 移除直接對外埠口映射，改由 Nginx (443) 存取
+    # ports:
+    #   - "5678:5678"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2G
     # ### 新增這段：強制使用穩定 DNS ###
     dns:
       - 8.8.8.8
@@ -161,12 +177,12 @@ services:
       - DB_POSTGRESDB_PASSWORD=${N8N_DB_PASSWORD}
       - N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE=true
       - NODE_FUNCTION_ALLOW_EXTERNAL=*
-      - GENERIC_TIMEZONE=Asia/Taipei  
+      - GENERIC_TIMEZONE=Asia/Taipei
       - TZ=Asia/Taipei
-      - N8N_HOST=yangjuiyu.tplinkdns.com
+      - N8N_HOST=${DOMAIN_NAME}
       - N8N_PORT=5678
       - N8N_PROTOCOL=https
-      - WEBHOOK_URL=https://yangjuiyu.tplinkdns.com/
+      - WEBHOOK_URL=https://${DOMAIN_NAME}/
 
     # 添加必要的權限給 Chrome/Puppeteer
     cap_add:
@@ -179,3 +195,28 @@ services:
       - ./n8n/data:/home/node/.n8n
     depends_on:
       - pgbouncer-n8n
+
+  # ===============================
+  # API Bridge (外部存取窗口)
+  # ===============================
+  api-bridge:
+    build:
+      context: ./app
+    container_name: api-bridge
+    restart: always
+    networks:
+      - db_net
+    environment:
+      - DB_HOST=postgres-replica
+      - DB_PORT=5432
+      - DB_NAME=${APP_READ_DB_NAME}
+      - DB_USER=${APP_READ_DB_USER}
+      - DB_PASSWORD=${APP_READ_DB_PASSWORD}
+      - API_SECRET_KEY=${API_SECRET_KEY}
+    depends_on:
+      - postgres-replica
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 512M
