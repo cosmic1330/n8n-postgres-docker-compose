@@ -1,11 +1,13 @@
-FROM n8nio/n8n:latest
+FROM n8nio/n8n:1
 USER root
 # 安裝擴充套件
 RUN npm install -g \ 
     cheerio \
     @ch20026103/anysis@0.0.19
 # Install Chrome dependencies and Chrome
-RUN apk add --no-cache \
+USER root
+
+RUN apt-get update && apt-get install -y \
     chromium \
     nss \
     glib \
@@ -16,7 +18,8 @@ RUN apk add --no-cache \
     ttf-freefont \
     udev \
     ttf-liberation \
-    font-noto-emoji
+    fonts-noto-color-emoji \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 
 # Tell Puppeteer to use installed Chrome instead of downloading it
