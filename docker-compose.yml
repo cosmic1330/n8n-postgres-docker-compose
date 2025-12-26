@@ -28,8 +28,10 @@ services:
           memory: 1G
     volumes:
       - ./postgres/.data/db:/var/lib/postgresql/data
-      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
       - ./pg_hba.conf:/var/lib/postgresql/data/pg_hba.conf
+    env_file:
+      - .env
     environment:
       POSTGRES_USER: ${DATABASE_USERNAME}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
@@ -61,6 +63,8 @@ services:
           memory: 1G
     depends_on:
       - postgres
+    env_file:
+      - .env
     environment:
       # 這裡不需要設定 POSTGRES_USER/PASSWORD，因為資料是直接從 Primary 複製過來的
       # 它會連同 Primary 的帳號密碼一起複製過來
