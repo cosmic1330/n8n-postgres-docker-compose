@@ -231,3 +231,31 @@ services:
         limits:
           cpus: "0.25"
           memory: 512M
+
+  # ===============================
+  # PostgreSQL Backup (Sidecar)
+  # ===============================
+  postgres-backup:
+    image: postgres:18
+    container_name: postgres-backup
+    restart: always
+    networks:
+      - db_net
+    environment:
+      - DB_HOST=postgres
+      - DB_NAME=${APP_WRITE_DB_NAME}
+      - POSTGRES_USER=${DATABASE_USERNAME}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+    volumes:
+      - ./backups:/backups
+      - ./scripts/backup-db.sh:/usr/local/bin/backup-db.sh:ro
+    # 執行週期：每 24 小時備份一次
+    entrypoint: |
+      /bin/sh -c '
+      while true; do
+        /usr/local/bin/backup-db.sh
+        echo "Sleeping for 24 hours..."
+        sleep 86400
+      done'
+    depends_on:
+      - postgres

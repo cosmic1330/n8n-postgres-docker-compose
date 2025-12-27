@@ -102,6 +102,7 @@ local   all             all                                     trust
 local   all             $POSTGRES_USER                          trust
 host    all             $POSTGRES_USER  127.0.0.1/32            trust
 host    all             $POSTGRES_USER  ::1/128                 trust
+host    all             $POSTGRES_USER  172.25.0.0/16           scram-sha-256
 host    all             $POSTGRES_USER  0.0.0.0/0               reject
 
 # 3. 限制 n8n_user 只能從內網連線到 n8n 資料庫 (Goal #13)
