@@ -21,6 +21,8 @@ subjectAltName = @alt_names
 [alt_names]
 DNS.1 = postgres
 DNS.2 = localhost
+DNS.3 = postgres-replica
+DNS.4 = juiyu.tplinkdns.com
 IP.1 = 127.0.0.1
 EOF
 
@@ -32,15 +34,23 @@ openssl x509 -req -in "$SSL_DIR/server.csr" -days 3650 \
   -extfile "$SSL_DIR/server.ext" \
   -out "$SSL_DIR/server.crt"
 
+echo "Generating Client Certificate for mTLS..."
+openssl req -new -nodes -out "$SSL_DIR/client.csr" \
+  -keyout "$SSL_DIR/client.key" -subj "/CN=app_reader"
+
+openssl x509 -req -in "$SSL_DIR/client.csr" -days 3650 \
+  -CA "$SSL_DIR/root.crt" -CAkey "$SSL_DIR/root.key" \
+  -out "$SSL_DIR/client.crt"
+
 echo "Setting permissions..."
 # PostgreSQL requires specific permissions for the private key
 # The key must be owned by the database user (UID 999 in official image) or root
 # and have 600 permissions.
 # We use docker to set ownership to avoid sudo prompts in some environments.
-docker run --rm -v "$(pwd)/$SSL_DIR:/ssl" alpine sh -c "chown 999:999 /ssl/server.key /ssl/root.key && chmod 600 /ssl/server.key /ssl/root.key"
-chmod 644 "$SSL_DIR/server.crt" "$SSL_DIR/root.crt"
+docker run --rm -v "$(pwd)/$SSL_DIR:/ssl" alpine sh -c "chown 999:999 /ssl/*.key && chmod 600 /ssl/*.key"
+chmod 644 "$SSL_DIR/server.crt" "$SSL_DIR/client.crt" "$SSL_DIR/root.crt"
 
 # Clean up
-rm "$SSL_DIR/server.csr" "$SSL_DIR/server.ext"
+rm "$SSL_DIR/server.csr" "$SSL_DIR/server.ext" "$SSL_DIR/client.csr"
 
 echo "SSL certificates generated successfully in $SSL_DIR"

@@ -32,3 +32,18 @@
 - 加入對 `postgres`、`localhost`、`127.0.0.1` 的支援。
 - 修正伺服器金鑰權限設定為 600。
 - 驗證憑證版本為 v3 (0x2) 且包含 SAN 欄位。
+
+## [app_reader 升級為 mTLS 雙重驗證] - 2025-12-27 [SUCCESS]
+
+### 實作內容
+
+- 更新 `scripts/generate-ssl.sh`：
+  - 生成客戶端 Root CA (使用現有 Root CA)。
+  - 為 `app_reader` 生成專屬客戶端憑證 (`client.crt`, `client.key`)。
+  - 修正 SAN (Subject Alternative Name) 以包含 `postgres-replica`。
+- 修改 `init-db.sh` 中的 `pg_hba.conf` 規則：
+  - 將 `app_reader` 的 `hostssl` 規則加入 `clientcert=verify-ca` 參數。
+- 更新 `api-bridge` 服務：
+  - 代碼整合 `node-postgres` 的 SSL 設定。
+  - 透過 Docker Compose 掛載客戶端憑證。
+- 驗證流程：確保無憑證連線、無密碼連線均會失敗，僅允許「有效憑證 + 正確密碼」。

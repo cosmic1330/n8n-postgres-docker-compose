@@ -224,6 +224,13 @@ services:
       - DB_USER=${APP_READ_DB_USER}
       - DB_PASSWORD=${APP_READ_DB_PASSWORD}
       - API_SECRET_KEY=${API_SECRET_KEY}
+      - DB_SSL_CA=/etc/ssl/postgres/root.crt
+      - DB_SSL_CERT=/etc/ssl/postgres/client.crt
+      - DB_SSL_KEY=/etc/ssl/postgres/client.key
+    volumes:
+      - ./postgres/ssl/root.crt:/etc/ssl/postgres/root.crt:ro
+      - ./postgres/ssl/client.crt:/etc/ssl/postgres/client.crt:ro
+      - ./postgres/ssl/client.key:/etc/ssl/postgres/client.key:ro
     depends_on:
       - postgres-replica
     deploy:

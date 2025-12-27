@@ -121,9 +121,9 @@ host    $N8N_DB_NAME    $N8N_DB_USER    172.25.0.0/16           scram-sha-256
 # 4. 限制 app_writer 只能從內網連線到 app 資料庫 (Goal #13)
 host    $APP_WRITE_DB_NAME $APP_WRITE_DB_USER 172.25.0.0/16     scram-sha-256
 
-# 5. 允許 app_reader 可從任何地方登入但是需要 SSL (Goal #8, #9)
-hostssl $APP_WRITE_DB_NAME $APP_READ_DB_USER  0.0.0.0/0         scram-sha-256
-hostssl postgres        $APP_READ_DB_USER  0.0.0.0/0         scram-sha-256
+# 5. 允許 app_reader 可從任何地方登入但是需要 SSL 與客戶端憑證 (mTLS) (Goal #8, #9)
+hostssl $APP_WRITE_DB_NAME $APP_READ_DB_USER  0.0.0.0/0         scram-sha-256 clientcert=verify-ca
+hostssl postgres        $APP_READ_DB_USER  0.0.0.0/0         scram-sha-256 clientcert=verify-ca
 
 # 6. 允許資料庫同步 (Replication) - 強制使用 SSL
 hostssl replication     $REPLICA_DB_USER 172.25.0.0/16          scram-sha-256
