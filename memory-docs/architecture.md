@@ -76,7 +76,7 @@ n8n-postgres-docker-compose/
 ├── Dockerfile              # 自定義 n8n 映像檔
 ├── docker-compose.yml      # 容器編排
 ├── docker-custom-entrypoint.sh # n8n 啟動腳本
-├── init-db.sql             # Primary 初始化腳本
+├── init-db.sh             # Primary 初始化腳本
 ├── init-replica.sh         # Replica 初始化腳本
 └── pg_hba.conf             # Postgres 訪問控制
 ```

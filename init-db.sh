@@ -81,13 +81,23 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$APP_WRITE_DB_NAME
     ALTER DEFAULT PRIVILEGES FOR ROLE $APP_WRITE_DB_USER IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO $APP_WRITE_DB_USER;
     ALTER DEFAULT PRIVILEGES FOR ROLE $APP_WRITE_DB_USER IN SCHEMA public GRANT SELECT ON TABLES TO $APP_READ_DB_USER;
     
+    -- 確保 app_reader 只有讀取權限 (Goal #105)
+    REVOKE ALL ON SCHEMA public FROM $APP_READ_DB_USER;
+    GRANT USAGE ON SCHEMA public TO $APP_READ_DB_USER;
+    GRANT SELECT ON ALL TABLES IN SCHEMA public TO $APP_READ_DB_USER;
+    REVOKE CREATE ON SCHEMA public FROM $APP_READ_DB_USER;
+    
     REVOKE CREATE ON SCHEMA public FROM PUBLIC;
     REVOKE CONNECT ON DATABASE $APP_WRITE_DB_NAME FROM PUBLIC;
 EOSQL
 
-# 5. 最終安全性強化
-echo "Finalizing security..."
+# 5. 最終安全性強化與目標權限調整
+echo "Finalizing security and reader permissions..."
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "postgres" <<-EOSQL
+    GRANT CONNECT ON DATABASE postgres TO $APP_READ_DB_USER;
+    REVOKE ALL ON SCHEMA public FROM $APP_READ_DB_USER;
+    GRANT USAGE ON SCHEMA public TO $APP_READ_DB_USER;
+    REVOKE CREATE ON SCHEMA public FROM $APP_READ_DB_USER;
     REVOKE CONNECT ON DATABASE postgres FROM PUBLIC;
 EOSQL
 
@@ -111,8 +121,9 @@ host    $N8N_DB_NAME    $N8N_DB_USER    172.25.0.0/16           scram-sha-256
 # 4. 限制 app_writer 只能從內網連線到 app 資料庫 (Goal #13)
 host    $APP_WRITE_DB_NAME $APP_WRITE_DB_USER 172.25.0.0/16     scram-sha-256
 
-# 5. 允許 app_reader 可從任何地方登入但是需要 SSL (Goal #15)
+# 5. 允許 app_reader 可從任何地方登入但是需要 SSL (Goal #8, #9)
 hostssl $APP_WRITE_DB_NAME $APP_READ_DB_USER  0.0.0.0/0         scram-sha-256
+hostssl postgres        $APP_READ_DB_USER  0.0.0.0/0         scram-sha-256
 
 # 6. 允許資料庫同步 (Replication) - 強制使用 SSL
 hostssl replication     $REPLICA_DB_USER 172.25.0.0/16          scram-sha-256
