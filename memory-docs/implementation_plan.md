@@ -23,3 +23,12 @@
 - 更新 `pg_hba.conf` 允許 `app_reader` 透過 SSL 從任何地方存取上述資料庫。
 - 修正 `architecture.md` 中的檔案名稱錯誤 (`init-db.sql` -> `init-db.sh`)。
 - 驗證 `postgres-replica` 服務正常運行且 `app_reader` 權限嚴格限制為唯讀。
+
+## [SSL 憑證生成腳本修復 (X.509 v3)] - 2025-12-27 [SUCCESS]
+
+### 實作內容
+
+- 更新 `scripts/generate-ssl.sh` 使用 X.509 v3 擴充功能與 SAN (Subject Alternative Name)。
+- 加入對 `postgres`、`localhost`、`127.0.0.1` 的支援。
+- 修正伺服器金鑰權限設定為 600。
+- 驗證憑證版本為 v3 (0x2) 且包含 SAN 欄位。
