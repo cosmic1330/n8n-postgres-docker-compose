@@ -65,7 +65,7 @@ echo "Configuring permissions for $N8N_DB_NAME..."
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$N8N_DB_NAME" <<-EOSQL
     GRANT CONNECT ON DATABASE $N8N_DB_NAME TO $N8N_DB_USER;
     GRANT USAGE, CREATE ON SCHEMA public TO $N8N_DB_USER;
-    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO $N8N_DB_USER;
+    ALTER DEFAULT PRIVILEGES FOR ROLE $N8N_DB_USER IN SCHEMA public GRANT ALL ON TABLES TO $N8N_DB_USER;
     REVOKE CONNECT ON DATABASE $N8N_DB_NAME FROM PUBLIC;
 EOSQL
 
@@ -78,8 +78,8 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$APP_WRITE_DB_NAME
     GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO $APP_WRITE_DB_USER;
     GRANT SELECT ON ALL TABLES IN SCHEMA public TO $APP_READ_DB_USER;
     
-    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO $APP_WRITE_DB_USER;
-    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO $APP_READ_DB_USER;
+    ALTER DEFAULT PRIVILEGES FOR ROLE $APP_WRITE_DB_USER IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO $APP_WRITE_DB_USER;
+    ALTER DEFAULT PRIVILEGES FOR ROLE $APP_WRITE_DB_USER IN SCHEMA public GRANT SELECT ON TABLES TO $APP_READ_DB_USER;
     
     REVOKE CREATE ON SCHEMA public FROM PUBLIC;
     REVOKE CONNECT ON DATABASE $APP_WRITE_DB_NAME FROM PUBLIC;
@@ -90,5 +90,34 @@ echo "Finalizing security..."
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "postgres" <<-EOSQL
     REVOKE CONNECT ON DATABASE postgres FROM PUBLIC;
 EOSQL
+
+# 6. 配置 pg_hba.conf (徹底取代預設內容以確保安全)
+echo "Overwriting pg_hba.conf with custom security rules..."
+cat > "$PGDATA/pg_hba.conf" <<EOF
+# 1. 允許本地 Unix Socket 連線 (如 docker exec)
+local   all             all                                     trust
+
+# 2. 限制 Superuser (postgres root) 僅能從容器內部 (127.0.0.1) 連線
+# 根據 .env 中的 DATABASE_USERNAME (對應 POSTGRES_USER)
+local   all             $POSTGRES_USER                          trust
+host    all             $POSTGRES_USER  127.0.0.1/32            trust
+host    all             $POSTGRES_USER  ::1/128                 trust
+host    all             $POSTGRES_USER  0.0.0.0/0               reject
+
+# 3. 限制 n8n_user 只能從內網連線到 n8n 資料庫 (Goal #13)
+host    $N8N_DB_NAME    $N8N_DB_USER    172.25.0.0/16           scram-sha-256
+
+# 4. 限制 app_writer 只能從內網連線到 app 資料庫 (Goal #13)
+host    $APP_WRITE_DB_NAME $APP_WRITE_DB_USER 172.25.0.0/16     scram-sha-256
+
+# 5. 允許 app_reader 可從任何地方登入但是需要 SSL (Goal #15)
+hostssl $APP_WRITE_DB_NAME $APP_READ_DB_USER  0.0.0.0/0         scram-sha-256
+
+# 6. 允許資料庫同步 (Replication) - 強制使用 SSL
+hostssl replication     $REPLICA_DB_USER 172.25.0.0/16          scram-sha-256
+
+# 7. 預設拒絕其他所有連線
+host    all             all             0.0.0.0/0               reject
+EOF
 
 echo "Database initialization completed successfully."

@@ -27,7 +27,6 @@ services:
     volumes:
       - ./postgres/.data/db:/var/lib/postgresql/18.1/data
       - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
-      - ./pg_hba.conf:/var/lib/postgresql/18.1/data/pg_hba.conf
       - ./postgres/ssl/server.crt:/var/lib/postgresql/18.1/docker/server.crt:ro
       - ./postgres/ssl/server.key:/var/lib/postgresql/18.1/docker/server.key:ro
       - ./postgres/ssl/root.crt:/var/lib/postgresql/18.1/docker/root.crt:ro
@@ -56,7 +55,6 @@ services:
     image: postgres:18
     container_name: postgres-replica
     restart: always
-    user: postgres
     networks:
       - db_net
     ports:

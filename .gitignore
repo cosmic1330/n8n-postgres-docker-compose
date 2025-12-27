@@ -2,4 +2,7 @@
 data
 test
 .env
+ssl
+server.*
+root.*
 !.env.example

@@ -6,7 +6,7 @@
 - 產品定位（Internal tool / SaaS / MVP / Prototype）： Internal tool
 
 ## 2. Problem Statement
-- 為postgre replication 需要對外但必須提高安全性
+- 我使用postgre:18來建構primary postgre與 postgre replication 但無法順利運行
 
 ## 3. Target Users
 - 主要使用者： IT部門
