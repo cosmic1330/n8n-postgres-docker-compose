@@ -51,6 +51,7 @@ graph TD
 
 - **Primary**: 負責所有寫入操作與主要讀取。啟用 WAL 級別複製。
 - **Replica**: 透過 `init-replica.sh` 自動初始化的熱備援資料庫，確保資料安全性與讀取分流能力。
+- **SMB Backup Volume**: 使用 `cifs` 驅動程式掛載SMB，用於存放資料庫備份。
 
 ## 網路配置 (Network Configuration)
 
@@ -78,5 +79,7 @@ n8n-postgres-docker-compose/
 ├── docker-custom-entrypoint.sh # n8n 啟動腳本
 ├── init-db.sh             # Primary 初始化腳本
 ├── init-replica.sh         # Replica 初始化腳本
-└── pg_hba.conf             # Postgres 訪問控制
+├── pg_hba.conf             # Postgres 訪問控制
+└── volumes/
+    └── smb_backup           # (Named Volume) 掛載至 NAS 備份路徑
 ```

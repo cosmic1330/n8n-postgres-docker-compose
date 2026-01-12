@@ -203,7 +203,7 @@ services:
     links:
       - postgres
     volumes:
-      - ./backups:/backups
+      - smb_backup:/backups
       - ./n8n/data:/home/node/.n8n
     depends_on:
       - pgbouncer-n8n
@@ -255,7 +255,7 @@ services:
       - POSTGRES_USER=${DATABASE_USERNAME}
       - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
     volumes:
-      - ./backups:/backups
+      - smb_backup:/backups
       - ./scripts/backup-db.sh:/usr/local/bin/backup-db.sh:ro
     # 執行週期：每 24 小時備份一次
     entrypoint: |
@@ -267,3 +267,11 @@ services:
       done'
     depends_on:
       - postgres
+
+volumes:
+  smb_backup:
+    driver: local
+    driver_opts:
+      type: cifs
+      device: "//${SMB_IP}/hdd/backups"
+      o: "username=${SMB_USER},password=${SMB_PASSWORD},domain=${SMB_DOMAIN:-WORKGROUP},vers=3.0"
