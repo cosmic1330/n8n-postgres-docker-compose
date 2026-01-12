@@ -203,7 +203,6 @@ services:
     links:
       - postgres
     volumes:
-      - smb_backup:/backups
       - ./n8n/data:/home/node/.n8n
     depends_on:
       - pgbouncer-n8n
