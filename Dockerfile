@@ -1,9 +1,15 @@
-FROM n8nio/n8n:1
+FROM n8nio/n8n:latest
 USER root
 # 安裝擴充套件
 RUN npm install -g \ 
     cheerio \
     @ch20026103/anysis@0.0.20-alpha.0
+
+
+# Copy apk and its deps from Alpine
+COPY --from=alpine /sbin/apk /sbin/apk
+COPY --from=alpine /usr/lib/libapk.so* /usr/lib/
+
 # Install Chrome dependencies and Chrome
 RUN apk add --no-cache \
     chromium \
